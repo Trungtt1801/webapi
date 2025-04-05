@@ -54,7 +54,7 @@ async function getDetailPro(id) {
         
     }
 }
-// http://localhost:3000/product/cate_id
+// http://localhost:3000/product/category/cate_id
 async function getProCate(cate_id) {
     try {
         // Kiểm tra danh mục có tồn tại không
