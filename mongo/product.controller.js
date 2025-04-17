@@ -91,6 +91,7 @@ async function addPro(data) {
         })
         // lưu db
         const result = await newPro.save()
+        return result;  
     } catch (error) {
         console.log(error);
         throw new Error('Lỗi thêm dữ liệu sản phẩm')
@@ -99,28 +100,34 @@ async function addPro(data) {
 
 async function updatepro(id, data) {
     try {
-        const pro = await productsModel.findById(id)
-        if(!pro){
-            throw new Error ('Sản phẩm không tồn tại')
+        const pro = await productsModel.findById(id);
+        if (!pro) {
+            throw new Error('Sản phẩm không tồn tại');
         }
-        //lấy dữ liệu từ from
-        const {name, img, price, cate_id, quantity} = data
-        let categoryFind = null
+        const { name, img, price, cate_id, quantity } = data;
+        let categoryFind = null;
         if (cate_id) {
-            categoryFind = await categoryModel.findById(cate_id)
+            categoryFind = await categoryModel.findById(cate_id);
         }
-        let categoryUpdate = categoryFind ? {
-            categoryId:categoryFind._id,
-            categoryName: categoryFind.name
-        }: pro.category
-        const result = await productsModel.findByIdAndUpdate(id,
-            {name, img, price, cate_id:categoryUpdate, quantity}, {new: true})
+        let categoryUpdate = categoryFind
+            ? {
+                  categoryId: categoryFind._id,
+                  categoryName: categoryFind.name
+              }
+            : pro.category;
+        const imageToUpdate = img || pro.img;
+        const result = await productsModel.findByIdAndUpdate(
+            id,
+            { name, img: imageToUpdate, price, cate_id: categoryUpdate, quantity },
+            { new: true } // Trả về sản phẩm đã được cập nhật
+        );
         return result;
     } catch (error) {
         console.log(error);
-        return new error('Lỗi lấy dữ liệu lấy sản phẩm')
+        throw new Error('Lỗi cập nhật sản phẩm');
     }
 }
+
 
 async function deletepro(id){
     try {

@@ -25,11 +25,11 @@ const upload = multer({storage: storage})
 router.get("/", async (req, res) => {
     try {
         const result = await productController.getProduct();
-        const baseUrl = "http://localhost:3000/images/"; // Đổi đường dẫn nếu cần
+        const baseUrl = "http://localhost:3000/images/";
 
         const updatedProducts = result.map((product) => ({
             ...product._doc,
-            img: product.img.startsWith("http") ? product.img : baseUrl + product.img
+            img: product.img && product.img.startsWith("http") ? product.img : baseUrl + product.img
         }));
 
         return res.status(200).json({ status: true, result: updatedProducts });
@@ -38,6 +38,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ status: false, message: "Lỗi lấy dữ liệu sản phẩm" });
     }
 });
+
 
 router.get("/uploads/:filename", async (req, res) => {
     try {
@@ -149,34 +150,47 @@ router.get('/:id', async (req, res) => {
 
 // thêm sản phẩm
 // http://localhost:3000/product/addpro
-router.post("/addpro",upload.single('img'), async(req, res) =>{
+router.post("/addpro", upload.single('img'), async (req, res) => {
     try {
-        const data = req.body
-        console.log(data);
-        data.img = req.file.originalname
-        const result = await productController.addPro(data)
-        return res.status(200).json({status: true, result})
+      const data = req.body;
+      console.log("DATA:", data);
+      console.log("FILE:", req.file);
+  
+      // Lưu tên file được multer gán
+      data.img = req.file.filename;
+  
+      const result = await productController.addPro(data);
+      return res.status(200).json({ status: true, result });
+    } catch (error) {
+      console.error("Error:", error);
+      return res.status(500).json({ status: false, message: "Lỗi thêm dữ liệu sản phẩm" });
+    }
+  });
+  
+router.put('/updatepro/:id', upload.single('img'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        // Log dữ liệu nhận được từ frontend
+        console.log('Received data:', data);
+        console.log('Received file:', req.file);
+
+        if (req.file) {
+            data.img = req.file.originalname;
+        } else {
+            delete data.img;
+        }
+
+        const result = await productController.updatepro(id, data);
+        return res.status(200).json({ status: true, result });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({status: false, message:"Lỗi thêm dữ liệu sản phẩm"})
+        return res.status(500).json({ status: false, message: 'Lỗi cập nhật sản phẩm' });
     }
-})
-router.put('/updatepro/:id', upload.single('img'), async(req,res) =>{
-    try {
-        const {id} = req.params
-        const data = req.body
-        if(req.file){
-            data.img = req.file.originalname
-        }else{
-            delete data.img
-        }  
-        const result = await productController.updatepro(id,data)
-        return res.status(200).json({status: true, result})
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({status: false, message: 'Lỗi cập nhật sản phẩm'})
-    }
-})
+});
+
+
 // http://localhost:3000/product/category/:cate_id
 router.get("/category/:cate_id", async (req, res) => {
     try {

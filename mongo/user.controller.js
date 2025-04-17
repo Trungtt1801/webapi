@@ -1,8 +1,7 @@
 // Thực hiện thao tác CRUD với collection categories
 const userModel = require('./user.model')
-const userController = require('./category.controller');
-const bcrytpjs = require('bcryptjs')
-module.exports = {resign,getUser,   login}
+const bcryptjs = require('bcryptjs'); // Đảm bảo dùng đúng thư viện
+module.exports = {resign, getUser, login}
 
 async function getUser(){
     try {
@@ -36,44 +35,78 @@ async function getUser(){
     }
 }
 // Đăng kí
-
 async function resign(data) {
     try {
-        const {name, email, phone, password, role} = data
-        // Kiểm tra emal có tồn tại hay ko 
-        let user = await userModel.findOne({email: email})
-        if(user){
-            throw new Error("email đã tồn tại")
-        }
-        const salt = bcrytpjs.genSaltSync(10);
-        const hashpassword = bcrytpjs.hashSync(password, salt);
-// Store hash in your password DB
-        user = new userModel({name, email, phone , password: hashpassword, role})
-        const result = await user.save()
-        return result;
+      let { name, email, phone, password, role } = data;
+  
+      if (!name || !email || !phone || !password) {
+        throw new Error("Thiếu thông tin bắt buộc");
+      }
+  
+      email = email.toLowerCase(); // ✅ chuẩn hóa email
+  
+      // Kiểm tra email đã tồn tại chưa
+      let user = await userModel.findOne({ email });
+      if (user) {
+        throw new Error("Email đã tồn tại");
+      }
+  
+      const salt = await bcryptjs.genSalt(10);
+      const hashpassword = await bcryptjs.hash(password, salt);
+  
+      user = new userModel({
+        name,
+        email, // đã chuẩn hóa
+        phone,
+        password: hashpassword,
+        role,
+      });
+  
+      const result = await user.save();
+      if (!result) {
+        throw new Error("Không thể lưu người dùng");
+      }
+  
+      return { status: true, message: "Tạo tài khoản thành công", user: result };
+  
     } catch (error) {
-        console.log(error);
-        throw new Error("Loi")
+      console.log(error);
+      throw new Error(error.message || "Lỗi trong quá trình tạo tài khoản");
     }
-}
-async function login(data) {
+  }
+  
+
+  async function login(data) {
     try {
-        const {email, password} = data;
-        let user = await userModel.findOne({email: email})
-        if(!user){
-            throw new Error('Email chưa được đăng ký!!')
-        }
-        // kiểm tra password
-        let checkpass = bcrytpjs.compareSync(password, user.password)
-        if(!checkpass){
-            throw new Error('Sai mật khẩu!!')
-        }
-        // user.doc
-        delete user._doc.password
-        user = {...user._doc}
-        return user
-        // token -> key secret => .env
+      let { email, password } = data;
+  
+      if (!email) {
+        throw new Error("Email không được để trống");
+      }
+      if (!password) {
+        throw new Error("Mật khẩu không được để trống");
+      }
+      
+      // Chuẩn hóa chữ thường
+      email = email.toLowerCase();
+  
+      const user = await userModel.findOne({ email });
+      if (!user) {
+        throw new Error("Email chưa được đăng ký!!");
+      }
+  
+      const checkpass = bcryptjs.compareSync(password, user.password);
+      if (!checkpass) {
+        throw new Error("Sai mật khẩu!!");
+      }
+  
+      const plainUser = user.toObject();
+      delete plainUser.password;
+      return plainUser;
+  
     } catch (error) {
-        console.log(error);
+      console.log(error);
+      throw new Error(error.message || "Lỗi đăng nhập");
     }
-}
+  }
+  
